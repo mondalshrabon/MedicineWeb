@@ -3,14 +3,16 @@ import { useParams, useNavigate } from "react-router-dom";
 import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 import { RiMedicineBottleLine, RiArrowLeftLine, RiStarFill } from "react-icons/ri";
-import { FiClock, FiInfo, FiDroplet, FiTag, FiPackage, FiLayers } from "react-icons/fi";
+import { FiClock, FiInfo, FiDroplet, FiTag, FiPackage, FiLayers, FiBriefcase } from "react-icons/fi";
 
 const MedicineInfo = ({ Theme }) => {
   const { id: Id } = useParams();
   const [medicine, setMedicine] = useState(null);
   const [loading, setLoading] = useState(true);
   const [relatedProducts, setRelatedProducts] = useState([]);
+  const [companyProducts, setCompanyProducts] = useState([]);
   const [relatedLoading, setRelatedLoading] = useState(true);
+  const [companyLoading, setCompanyLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -24,6 +26,9 @@ const MedicineInfo = ({ Theme }) => {
           const data = docSnap.data();
           setMedicine(data);
           fetchRelated(data.Brand, docSnap.id);
+          if (data.Company) {
+            fetchCompanyRelated(data.Company, docSnap.id);
+          }
         } else {
           console.log("No such document!");
         }
@@ -52,6 +57,27 @@ const MedicineInfo = ({ Theme }) => {
         console.error("Error fetching related products:", error);
       } finally {
         setRelatedLoading(false);
+      }
+    };
+
+    const fetchCompanyRelated = async (company, currentId) => {
+      setCompanyLoading(true);
+      try {
+        const q = query(collection(db, "categories"), where("Company", "==", company));
+        const querySnapshot = await getDocs(q);
+        const related = [];
+
+        querySnapshot.forEach((doc) => {
+          if (doc.id !== currentId) {
+            related.push({ id: doc.id, ...doc.data() });
+          }
+        });
+
+        setCompanyProducts(related);
+      } catch (error) {
+        console.error("Error fetching company related products:", error);
+      } finally {
+        setCompanyLoading(false);
       }
     };
 
@@ -126,13 +152,24 @@ const MedicineInfo = ({ Theme }) => {
                     </div>
                   )}
                   
-                  {/* Brand Badge */}
-                  <div className={`w-full max-w-xs p-3 sm:p-4 rounded-lg ${Theme ? 'bg-gray-700' : 'bg-gray-100'} flex items-center`}>
-                    <FiLayers className={`text-xl mr-3 ${Theme ? 'text-yellow-400' : 'text-yellow-600'}`} />
-                    <div>
-                      <p className={`text-xs ${Theme ? 'text-gray-400' : 'text-gray-600'}`}>Manufactured by</p>
-                      <h3 className="font-bold text-base sm:text-lg">{medicine.Brand}</h3>
+                  {/* Brand and Company Badge */}
+                  <div className="w-full max-w-xs space-y-3">
+                    <div className={`p-3 sm:p-4 rounded-lg ${Theme ? 'bg-gray-700' : 'bg-gray-100'} flex items-center`}>
+                      <FiLayers className={`text-xl mr-3 ${Theme ? 'text-yellow-400' : 'text-yellow-600'}`} />
+                      <div>
+                        <p className={`text-xs ${Theme ? 'text-gray-400' : 'text-gray-600'}`}>Manufactured by</p>
+                        <h3 className="font-bold text-base sm:text-lg">{medicine.Brand}</h3>
+                      </div>
                     </div>
+                    {medicine.Company && (
+                      <div className={`p-3 sm:p-4 rounded-lg ${Theme ? 'bg-gray-700' : 'bg-gray-100'} flex items-center`}>
+                        <FiBriefcase className={`text-xl mr-3 ${Theme ? 'text-blue-400' : 'text-blue-600'}`} />
+                        <div>
+                          <p className={`text-xs ${Theme ? 'text-gray-400' : 'text-gray-600'}`}>Company</p>
+                          <h3 className="font-bold text-base sm:text-lg">{medicine.Company}</h3>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -165,7 +202,7 @@ const MedicineInfo = ({ Theme }) => {
               </InfoCard>
             )}
 
-            {/* Related Medicines */}
+            {/* Related Medicines by Brand */}
             <div className={`p-4 sm:p-8 rounded-2xl ${Theme ? 'bg-gray-800' : 'bg-white'} shadow-xl`}>
               <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 flex items-center">
                 <FiTag className={`mr-3 ${Theme ? 'text-yellow-400' : 'text-yellow-600'}`} />
@@ -203,6 +240,52 @@ const MedicineInfo = ({ Theme }) => {
                 </div>
               )}
             </div>
+
+            {/* Related Medicines by Company */}
+            {medicine.Company && (
+              <div className={`p-4 sm:p-8 rounded-2xl ${Theme ? 'bg-gray-800' : 'bg-white'} shadow-xl`}>
+                <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 flex items-center">
+                  <FiBriefcase className={`mr-3 ${Theme ? 'text-blue-400' : 'text-blue-600'}`} />
+                  <span>Other Products by <span className="text-blue-500">{medicine.Company}</span></span>
+                </h2>
+
+                {companyLoading ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className={`p-4 rounded-lg ${Theme ? 'bg-gray-700' : 'bg-gray-100'} animate-pulse h-20 sm:h-24`}></div>
+                    ))}
+                  </div>
+                ) : companyProducts.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                    {companyProducts.map((item) => (
+                      <div
+                        key={item.id}
+                        onClick={() => {
+                          navigate(`/admin/medicine/${item.id}`);
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                        className={`p-3 sm:p-4 rounded-lg cursor-pointer transition-all ${Theme ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} border ${Theme ? 'border-gray-700' : 'border-gray-200'} group`}
+                      >
+                        <h3 className="font-medium text-sm sm:text-base group-hover:text-blue-500 transition-colors">{item.name}</h3>
+                        <p className={`text-xs sm:text-sm mt-1 ${Theme ? 'text-gray-400' : 'text-gray-600'} break-words`}>{item.Composition}</p>
+                        <div className="flex items-center mt-2 space-x-2">
+                          <div className={`text-xs px-2 py-1 rounded-full inline-block ${Theme ? 'bg-gray-700 text-blue-300' : 'bg-gray-100 text-blue-600'}`}>
+                            {item.Brand}
+                          </div>
+                          <div className={`text-xs px-2 py-1 rounded-full inline-block ${Theme ? 'bg-gray-700 text-green-300' : 'bg-gray-100 text-green-600'}`}>
+                            {item.Company}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className={`text-center py-8 sm:py-12 rounded-lg ${Theme ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                    <p className={`${Theme ? 'text-gray-400' : 'text-gray-600'}`}>No other products found from this company</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ) : (
           <div className={`text-center py-16 sm:py-32 rounded-xl ${Theme ? 'bg-gray-800' : 'bg-white'} shadow-xl`}>

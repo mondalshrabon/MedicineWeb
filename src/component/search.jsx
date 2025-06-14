@@ -22,6 +22,7 @@ const Search = ({ Theme }) => {
     }
 
     const medicinesRef = collection(db, 'categories');
+
     const nameQuery = query(
       medicinesRef,
       where('name_lowercase', '>=', term),
@@ -40,11 +41,19 @@ const Search = ({ Theme }) => {
         getDocs(brandQuery)
       ]);
 
-      const combinedResults = [
-        ...nameSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })),
-        ...brandSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-      ];
+      const nameResults = nameSnap.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
 
+      const brandResults = brandSnap.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      const combinedResults = [...nameResults, ...brandResults];
+
+      // Remove duplicates by id
       const uniqueResults = combinedResults.filter(
         (medicine, index, self) =>
           index === self.findIndex((m) => m.id === medicine.id)
@@ -116,7 +125,7 @@ const Search = ({ Theme }) => {
                         scrollTo(0, 0);
                       }}
                     >
-                      {medicine.name} {medicine.medicine_brand && `(${medicine.medicine_brand})`}
+                      {medicine.name} {medicine.Brand && `(${medicine.Brand})`}
                     </li>
                   ))}
                 </ul>
