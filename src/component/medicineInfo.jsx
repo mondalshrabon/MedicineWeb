@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 import { RiMedicineBottleLine, RiArrowLeftLine, RiStarFill } from "react-icons/ri";
-import { FiClock, FiInfo, FiDroplet, FiTag, FiPackage, FiLayers, FiBriefcase } from "react-icons/fi";
+import { FiClock, FiInfo, FiDroplet, FiTag, FiPackage, FiLayers, FiBriefcase, FiAlertTriangle } from "react-icons/fi";
 
 const MedicineInfo = ({ Theme }) => {
   const { id: Id } = useParams();
@@ -196,11 +196,19 @@ const MedicineInfo = ({ Theme }) => {
             </div>
 
             {/* Detailed Information */}
-            {medicine.Dose_Indication && (
-              <InfoCard icon={<FiClock className="text-purple-500" />} title="Dosage & Administration">
-                {formatNumberedList(medicine.Dose_Indication)}
-              </InfoCard>
-            )}
+            <div className="space-y-6">
+              {medicine.Dose_Indication && (
+                <InfoCard icon={<FiClock className="text-purple-500" />} title="Dosage & Administration">
+                  {formatNumberedList(medicine.Dose_Indication)}
+                </InfoCard>
+              )}
+
+              {medicine.Contraindications && (
+                <InfoCard icon={<FiAlertTriangle className="text-red-500" />} title="Contraindications">
+                  {formatNumberedList(medicine.Contraindications)}
+                </InfoCard>
+              )}
+            </div>
 
             {/* Related Medicines by Brand */}
             <div className={`p-4 sm:p-8 rounded-2xl ${Theme ? 'bg-gray-800' : 'bg-white'} shadow-xl`}>
